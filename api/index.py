@@ -56,3 +56,25 @@ def register():
             "phone": data["phone"]
         }
     }), 201
+
+
+@app.route('/login', methods=['POST'])
+def login():
+    data = request.json
+    email = data.get("email")
+    password = data.get("password")
+
+    if not email or not password:
+        return jsonify({"error": "Missing email or password"}), 400
+
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    cursor.execute("SELECT id, password FROM users WHERE email = %s", (email,))
+    user = cursor.fetchone()
+    conn.close()
+
+    if user and user[1] == password: 
+        return jsonify({"message": "Login successful!", "token": "fake-jwt-token", "id": user[0]}), 200
+    else:
+        return jsonify({"error": "Invalid email or password"}), 401
