@@ -156,3 +156,7 @@ def delete_habit(habit_id):
         return jsonify({"message": "Habit deleted"}), 200
     else:
         return jsonify({"error": "Habit not found"}), 404
+
+
+def handler(event, context):
+    return app(event, context)
