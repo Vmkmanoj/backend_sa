@@ -81,36 +81,29 @@ def login():
 
 @app.route('/habits', methods=['POST'])
 def add_habit():
-    try:
-        data = request.get_json()
-        if not data or "name" not in data or "user_id" not in data:
-            return jsonify({"error": "Missing required fields"}), 400
+    data = request.get_json()
+    if not data or "name" not in data or "user_id" not in data:
+        return jsonify({"error": "Missing required fields"}), 400
 
-        habit_name = data["name"]
-        user_id = int(data["user_id"])  
+    habit_name = data["name"]
+    user_id = int(data["user_id"])  
 
-        conn = get_db_connection()
-        cursor = conn.cursor()
+    conn = get_db_connection()
+    cursor = conn.cursor()
 
-        print(f"Adding Habit: {habit_name}, User ID: {user_id}")
-
-        cursor.execute("SELECT id FROM users WHERE id = %s", (user_id,))
-        user = cursor.fetchone()
-        if not user:
-            conn.close()
-            return jsonify({"message": "User not found"}), 404
-
-        cursor.execute("INSERT INTO habit (name, user_id) VALUES (%s, %s) RETURNING id", (habit_name, user_id))
-        new_habit_id = cursor.fetchone()[0]
-
-        conn.commit()
+    cursor.execute("SELECT id FROM users WHERE id = %s", (user_id,))
+    user = cursor.fetchone()
+    if not user:
         conn.close()
+        return jsonify({"message": "User not found"}), 404
 
-        return jsonify({"id": new_habit_id, "name": habit_name, "user_id": user_id}), 201
+    cursor.execute("INSERT INTO habit (name, user_id) VALUES (%s, %s) RETURNING id", (habit_name, user_id))
+    new_habit_id = cursor.fetchone()[0]
 
-    except Exception as e:
-        print("Error:", str(e))  
-        return jsonify({"error": str(e)}), 500
+    conn.commit()
+    conn.close()
+
+    return jsonify({"id": new_habit_id, "name": habit_name, "user_id": user_id}), 201
 
 
 @app.route('/habits/<int:user_id>', methods=['GET'])
@@ -123,55 +116,41 @@ def get_habits(user_id):
     conn.close()
 
     return jsonify([{"id": h[0], "name": h[1]} for h in habits])
-
-
 @app.route('/habit-log', methods=['POST'])
 def log_habit():
     data = request.json
     conn = get_db_connection()
     cursor = conn.cursor()
-
     cursor.execute("INSERT INTO habit_log (habit_id, date, completed) VALUES (%s, %s, %s)", 
                    (data["habit_id"], date.today(), data.get("completed", False)))
-
     cursor.execute("UPDATE habit SET streak = streak + 1 WHERE id = %s", (data["habit_id"],))
-
     conn.commit()
     conn.close()
-
     return jsonify({"message": "Habit logged!"})
-
 @app.route("/habits/<int:habit_id>", methods=["PUT"])
 def update_habit(habit_id):
     data = request.get_json()
     new_name = data.get("name")
-
     if not new_name:
         return jsonify({"error": "Name is required"}), 400
-
     conn = get_db_connection()
     cursor = conn.cursor()
-
     cursor.execute("UPDATE habit SET name = %s WHERE id = %s RETURNING id, name", (new_name, habit_id))
     updated_habit = cursor.fetchone()
     conn.commit()
     conn.close()
-
     if updated_habit:
         return jsonify({"message": "Habit updated", "habit": {"id": updated_habit[0], "name": updated_habit[1]}}), 200
     else:
         return jsonify({"error": "Habit not found"}), 404
-
 @app.route("/habits/<int:habit_id>", methods=["DELETE"])
 def delete_habit(habit_id):
     conn = get_db_connection()
     cursor = conn.cursor()
-
     cursor.execute("DELETE FROM habit WHERE id = %s RETURNING id", (habit_id,))
     deleted_habit = cursor.fetchone()
     conn.commit()
     conn.close()
-
     if deleted_habit:
         return jsonify({"message": "Habit deleted"}), 200
     else:
