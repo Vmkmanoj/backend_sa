@@ -21,6 +21,38 @@ def get_db_connection():
 def home():
     return jsonify({"message": "Hello, Flask on Vercel!"})
 
-@app.route('/about')
-def about():
-    return 'About'
+@app.route('/register', methods=['POST'])
+def register():
+    data = request.json
+
+    if not all(k in data for k in ["name", "email", "phone", "password"]):
+        return jsonify({"error": "Missing required fields"}), 400
+
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    cursor.execute("SELECT id FROM users WHERE email = %s", (data["email"],))
+    existing_user = cursor.fetchone()
+
+    if existing_user:
+        conn.close()
+        return jsonify({"error": "User already exists"}), 400
+
+    cursor.execute(
+        "INSERT INTO users (name, email, phone, password) VALUES (%s, %s, %s, %s) RETURNING id",
+        (data["name"], data["email"], data["phone"], data["password"])
+    )
+
+    user_id = cursor.fetchone()[0]
+    conn.commit()
+    conn.close()
+
+    return jsonify({
+        "message": "User registered successfully!",
+        "user": {
+            "id": user_id,
+            "name": data["name"],
+            "email": data["email"],
+            "phone": data["phone"]
+        }
+    }), 201
