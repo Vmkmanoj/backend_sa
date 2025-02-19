@@ -17,9 +17,9 @@ jwt = JWTManager(app)
 def get_db_connection():
     return conn_pool.getconn()
 
-@app.route('/')
+@app.route("/")
 def home():
-    return 'Hello, World!  Sharmme'
+    return jsonify({"message": "Hello, Flask on Vercel!"})
 
 @app.route('/about')
 def about():
