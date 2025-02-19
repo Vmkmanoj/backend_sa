@@ -104,3 +104,15 @@ def add_habit():
     conn.close()
 
     return jsonify({"id": new_habit_id, "name": habit_name, "user_id": user_id}), 201
+
+
+@app.route('/habits/<int:user_id>', methods=['GET'])
+def get_habits(user_id):
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    cursor.execute("SELECT id, name FROM habit WHERE user_id = %s", (user_id,))
+    habits = cursor.fetchall()
+    conn.close()
+
+    return jsonify([{"id": h[0], "name": h[1]} for h in habits])
