@@ -157,5 +157,7 @@ def delete_habit(habit_id):
     else:
         return jsonify({"error": "Habit not found"}), 404
 
+if __name__ == "__main__":
+    app.run(debug=True)
 
 
