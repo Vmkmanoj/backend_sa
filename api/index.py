@@ -109,14 +109,26 @@ def add_habit():
 
 @app.route('/habits/<int:user_id>', methods=['GET'])
 def get_habits(user_id):
-    conn = get_db_connection()
-    cursor = conn.cursor()
+    conn = None
+    cursor = None
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
 
-    cursor.execute("SELECT id, name FROM habit WHERE user_id = %s", (user_id,))
-    habits = cursor.fetchall()
-    conn.close()
+        cursor.execute("SELECT id, name FROM habit WHERE user_id = %s", (user_id,))
+        habits = cursor.fetchall()
 
-    return jsonify([{"id": h[0], "name": h[1]} for h in habits])
+        return jsonify([{"id": h[0], "name": h[1]} for h in habits])
+    
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+    finally:
+        if cursor:
+            cursor.close()  # Close cursor to avoid memory leaks
+        if conn:
+            conn_pool.putconn(conn)  # Return connection to pool instead of closing
+
 @app.route('/habit-log', methods=['POST'])
 def log_habit():
     data = request.json
