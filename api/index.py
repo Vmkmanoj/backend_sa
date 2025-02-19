@@ -78,3 +78,29 @@ def login():
         return jsonify({"message": "Login successful!", "token": "fake-jwt-token", "id": user[0]}), 200
     else:
         return jsonify({"error": "Invalid email or password"}), 401
+
+@app.route('/habits', methods=['POST'])
+def add_habit():
+    data = request.get_json()
+    if not data or "name" not in data or "user_id" not in data:
+        return jsonify({"error": "Missing required fields"}), 400
+
+    habit_name = data["name"]
+    user_id = int(data["user_id"])  
+
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    cursor.execute("SELECT id FROM users WHERE id = %s", (user_id,))
+    user = cursor.fetchone()
+    if not user:
+        conn.close()
+        return jsonify({"message": "User not found"}), 404
+
+    cursor.execute("INSERT INTO habit (name, user_id) VALUES (%s, %s) RETURNING id", (habit_name, user_id))
+    new_habit_id = cursor.fetchone()[0]
+
+    conn.commit()
+    conn.close()
+
+    return jsonify({"id": new_habit_id, "name": habit_name, "user_id": user_id}), 201
