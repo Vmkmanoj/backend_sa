@@ -116,3 +116,56 @@ def get_habits(user_id):
     conn.close()
 
     return jsonify([{"id": h[0], "name": h[1]} for h in habits])
+
+
+@app.route('/habit-log', methods=['POST'])
+def log_habit():
+    data = request.json
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    cursor.execute("INSERT INTO habit_log (habit_id, date, completed) VALUES (%s, %s, %s)", 
+                   (data["habit_id"], date.today(), data.get("completed", False)))
+
+    cursor.execute("UPDATE habit SET streak = streak + 1 WHERE id = %s", (data["habit_id"],))
+
+    conn.commit()
+    conn.close()
+
+    return jsonify({"message": "Habit logged!"})
+
+@app.route("/habits/<int:habit_id>", methods=["PUT"])
+def update_habit(habit_id):
+    data = request.get_json()
+    new_name = data.get("name")
+
+    if not new_name:
+        return jsonify({"error": "Name is required"}), 400
+
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    cursor.execute("UPDATE habit SET name = %s WHERE id = %s RETURNING id, name", (new_name, habit_id))
+    updated_habit = cursor.fetchone()
+    conn.commit()
+    conn.close()
+
+    if updated_habit:
+        return jsonify({"message": "Habit updated", "habit": {"id": updated_habit[0], "name": updated_habit[1]}}), 200
+    else:
+        return jsonify({"error": "Habit not found"}), 404
+
+@app.route("/habits/<int:habit_id>", methods=["DELETE"])
+def delete_habit(habit_id):
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    cursor.execute("DELETE FROM habit WHERE id = %s RETURNING id", (habit_id,))
+    deleted_habit = cursor.fetchone()
+    conn.commit()
+    conn.close()
+
+    if deleted_habit:
+        return jsonify({"message": "Habit deleted"}), 200
+    else:
+        return jsonify({"error": "Habit not found"}), 404
