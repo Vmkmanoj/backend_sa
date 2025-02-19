@@ -5,6 +5,7 @@ import psycopg2.pool
 from datetime import date
 
 app = Flask(__name__)
+
 CORS(app)
 
 # Database connection pool
