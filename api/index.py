@@ -58,7 +58,6 @@ def register():
         }
     }), 201
 
-
 @app.route('/login', methods=['POST'])
 def login():
     data = request.json
